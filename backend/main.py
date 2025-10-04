@@ -3736,6 +3736,19 @@ def generate_personalized_health_answer(question: str, health_data: Dict[str, An
         logger.info(f"Health data received: {health_data}")
         logger.info(f"Health data type: {type(health_data)}")
         logger.info(f"Health data keys: {list(health_data.keys()) if health_data else 'None'}")
+        logger.info(f"Diabetes risk in health_data: {health_data.get('diabetes_risk', 'NOT FOUND')}")
+        logger.info(f"Hypertension risk in health_data: {health_data.get('hypertension_risk', 'NOT FOUND')}")
+        
+        # Additional debugging for risk scores
+        if 'diabetes_risk' in health_data:
+            diabetes_raw = health_data.get('diabetes_risk')
+            diabetes_converted = diabetes_raw * 100 if diabetes_raw <= 1.0 else diabetes_raw
+            logger.info(f"Main Q&A - Diabetes: {diabetes_raw} -> {diabetes_converted}%")
+        
+        if 'hypertension_risk' in health_data:
+            hypertension_raw = health_data.get('hypertension_risk')
+            hypertension_converted = hypertension_raw * 100 if hypertension_raw <= 1.0 else hypertension_raw
+            logger.info(f"Main Q&A - Hypertension: {hypertension_raw} -> {hypertension_converted}%")
         
         # Extract key health metrics with safe defaults and type conversion
         try:
@@ -3748,6 +3761,9 @@ def generate_personalized_health_answer(question: str, health_data: Dict[str, An
             activity = float(health_data.get('physical_activity', 5))
             smoking = int(health_data.get('smoking_status', 0))
             family_history = int(health_data.get('family_history', 0))
+            alcohol = int(health_data.get('alcohol_intake', 0))
+            sleep_hours = float(health_data.get('sleep_hours', 7))
+            stress_level = float(health_data.get('stress_level', 5))
             
             # Log extracted values
             logger.info(f"Extracted values - age: {age}, gender: {gender}, bmi: {bmi}, bp: {blood_pressure}, glucose: {glucose}")
@@ -3764,25 +3780,48 @@ def generate_personalized_health_answer(question: str, health_data: Dict[str, An
             activity = 5
             smoking = 0
             family_history = 0
+            alcohol = 0
+            sleep_hours = 7
+            stress_level = 5
         
         # Analyze question type and generate personalized response
         question_lower = question.lower()
         
         # Diabetes-related questions
-        if any(word in question_lower for word in ['diabetes', 'diabetic', 'blood sugar', 'glucose', 'sugar']):
+        if any(word in question_lower for word in ['diabetes', 'diabetic', 'blood sugar', 'glucose', 'sugar', 'insulin', 'prediabetes']):
             return generate_diabetes_answer(question, health_data, age, gender, bmi, glucose, activity, smoking, family_history)
         
         # Hypertension-related questions
-        elif any(word in question_lower for word in ['hypertension', 'blood pressure', 'high blood pressure', 'bp']):
+        elif any(word in question_lower for word in ['hypertension', 'blood pressure', 'high blood pressure', 'bp', 'heart', 'cardiovascular']):
             return generate_hypertension_answer(question, health_data, age, gender, bmi, blood_pressure, cholesterol, activity, smoking)
         
         # Nutrition-related questions
-        elif any(word in question_lower for word in ['diet', 'food', 'eat', 'nutrition', 'meal', 'carb', 'sugar']):
+        elif any(word in question_lower for word in ['diet', 'food', 'eat', 'nutrition', 'meal', 'carb', 'sugar', 'dietary', 'nutrients']):
             return generate_nutrition_answer(question, health_data, bmi, glucose, cholesterol, activity)
         
         # Exercise-related questions
-        elif any(word in question_lower for word in ['exercise', 'workout', 'fitness', 'activity', 'gym', 'cardio']):
+        elif any(word in question_lower for word in ['exercise', 'workout', 'fitness', 'activity', 'gym', 'cardio', 'strength', 'training']):
             return generate_fitness_answer(question, health_data, age, bmi, activity, blood_pressure)
+        
+        # Sleep-related questions
+        elif any(word in question_lower for word in ['sleep', 'insomnia', 'rest', 'fatigue', 'tired', 'energy', 'sleeping']):
+            return generate_sleep_answer(question, health_data, age, sleep_hours, stress_level, activity)
+        
+        # Mental health questions
+        elif any(word in question_lower for word in ['stress', 'anxiety', 'mental', 'mood', 'depression', 'wellbeing', 'mental health', 'psychological']):
+            return generate_mental_health_answer(question, health_data, age, stress_level, sleep_hours, activity)
+        
+        # Lifestyle questions
+        elif any(word in question_lower for word in ['lifestyle', 'habits', 'routine', 'daily', 'prevention', 'wellness', 'healthy living']):
+            return generate_lifestyle_answer(question, health_data, age, gender, bmi, activity, smoking, alcohol, sleep_hours)
+        
+        # Medication questions
+        elif any(word in question_lower for word in ['medication', 'drugs', 'treatment', 'therapy', 'supplements', 'vitamins', 'pills']):
+            return generate_medication_answer(question, health_data, age, gender, bmi, blood_pressure, glucose, cholesterol)
+        
+        # Symptoms questions
+        elif any(word in question_lower for word in ['symptoms', 'signs', 'warning', 'alerts', 'pain', 'discomfort', 'feeling']):
+            return generate_symptoms_answer(question, health_data, age, gender, bmi, blood_pressure, glucose, cholesterol)
         
         # General health questions
         else:
@@ -3825,12 +3864,26 @@ def generate_diabetes_answer(question: str, health_data: Dict, age: int, gender:
     if age > 45:
         risk_factors.append("age over 45")
     
-    # Generate personalized response
-    if len(risk_factors) > 3:
+    # Get actual diabetes risk from assessment results
+    diabetes_risk_raw = health_data.get('diabetes_risk', 0)
+    
+    # Convert decimal to percentage if needed (0.852 -> 85.2)
+    if diabetes_risk_raw <= 1.0:
+        diabetes_risk = diabetes_risk_raw * 100
+    else:
+        diabetes_risk = diabetes_risk_raw
+    
+    # Debug logging
+    logger.info(f"Diabetes Q&A - Raw risk score: {diabetes_risk_raw}")
+    logger.info(f"Diabetes Q&A - Converted risk score: {diabetes_risk}")
+    logger.info(f"Diabetes Q&A - Health data keys: {list(health_data.keys()) if health_data else 'None'}")
+    
+    # Generate personalized response based on actual risk score
+    if diabetes_risk >= 70:
         confidence = "High"
-        answer = f"""**Your Diabetes Risk Assessment: HIGH RISK**
+        answer = f"""**Your Diabetes Risk Assessment: VERY HIGH RISK**
 
-Based on your health profile, you have multiple significant diabetes risk factors: {', '.join(risk_factors[:3])}.
+🚨 CRITICAL: Your actual diabetes risk is {diabetes_risk:.1f}% - This is VERY HIGH and requires immediate attention.
 
 **Your Specific Risk Factors:**
 • BMI: {bmi:.1f} ({'Obesity' if bmi > 30 else 'Overweight' if bmi > 25 else 'Normal weight'})
@@ -3838,18 +3891,36 @@ Based on your health profile, you have multiple significant diabetes risk factor
 • Physical Activity: {activity}/10 ({'Low' if activity < 3 else 'Moderate' if activity < 6 else 'Good'})
 • Age: {age} years ({'High risk age' if age > 65 else 'Moderate risk age' if age > 45 else 'Lower risk age'})
 
-**Immediate Actions Needed:**
-• Schedule a comprehensive diabetes screening (HbA1c, fasting glucose)
+**IMMEDIATE ACTIONS REQUIRED:**
+• Schedule a comprehensive diabetes screening (HbA1c, fasting glucose) IMMEDIATELY
+• Consult with an endocrinologist or diabetes specialist within 1-2 weeks
+• Consider diabetes medication as recommended by your doctor
+• Monitor blood glucose levels daily
+• Implement strict dietary changes immediately"""
+    elif diabetes_risk >= 50:
+        confidence = "High"
+        answer = f"""**Your Diabetes Risk Assessment: HIGH RISK**
+
+⚠️ Your actual diabetes risk is {diabetes_risk:.1f}% - This is HIGH and needs urgent attention.
+
+**Your Specific Risk Factors:**
+• BMI: {bmi:.1f} ({'Obesity' if bmi > 30 else 'Overweight' if bmi > 25 else 'Normal weight'})
+• Blood Glucose: {glucose} mg/dL ({'Pre-diabetic' if glucose > 100 else 'Normal'})
+• Physical Activity: {activity}/10 ({'Low' if activity < 3 else 'Moderate' if activity < 6 else 'Good'})
+• Age: {age} years ({'High risk age' if age > 65 else 'Moderate risk age' if age > 45 else 'Lower risk age'})
+
+**URGENT ACTIONS NEEDED:**
+• Schedule a comprehensive diabetes screening (HbA1c, fasting glucose) within 2 weeks
 • Consult with an endocrinologist or diabetes specialist
 • Focus on weight management if BMI > 25
 • Increase physical activity to at least 150 minutes/week
 • Monitor blood glucose levels regularly"""
         
-    elif len(risk_factors) > 1:
+    elif diabetes_risk >= 25:
         confidence = "Medium"
         answer = f"""**Your Diabetes Risk Assessment: MODERATE RISK**
 
-You have some diabetes risk factors that need attention: {', '.join(risk_factors[:2])}.
+Your actual diabetes risk is {diabetes_risk:.1f}% - This is MODERATE and needs attention.
 
 **Your Specific Profile:**
 • BMI: {bmi:.1f} - {'Needs improvement' if bmi > 25 else 'Good'}
@@ -3867,7 +3938,7 @@ You have some diabetes risk factors that need attention: {', '.join(risk_factors
         confidence = "High"
         answer = f"""**Your Diabetes Risk Assessment: LOW RISK**
 
-Excellent! Your current health profile shows low diabetes risk.
+✅ Good news! Your actual diabetes risk is {diabetes_risk:.1f}% - This is LOW.
 
 **Your Healthy Profile:**
 • BMI: {bmi:.1f} - Excellent
@@ -3896,6 +3967,20 @@ Excellent! Your current health profile shows low diabetes risk.
 def generate_hypertension_answer(question: str, health_data: Dict, age: int, gender: str, bmi: float, blood_pressure: float, cholesterol: float, activity: float, smoking: int) -> HealthAnswer:
     """Generate personalized hypertension-related answers"""
     
+    # Get actual hypertension risk from assessment results
+    hypertension_risk_raw = health_data.get('hypertension_risk', 0)
+    
+    # Convert decimal to percentage if needed (0.887 -> 88.7)
+    if hypertension_risk_raw <= 1.0:
+        hypertension_risk = hypertension_risk_raw * 100
+    else:
+        hypertension_risk = hypertension_risk_raw
+    
+    # Debug logging
+    logger.info(f"Hypertension Q&A - Raw risk score: {hypertension_risk_raw}")
+    logger.info(f"Hypertension Q&A - Converted risk score: {hypertension_risk}")
+    logger.info(f"Hypertension Q&A - Health data keys: {list(health_data.keys()) if health_data else 'None'}")
+    
     # Analyze risk factors
     risk_factors = []
     if blood_pressure >= 140:
@@ -3920,12 +4005,12 @@ def generate_hypertension_answer(question: str, health_data: Dict, age: int, gen
     if age > 65:
         risk_factors.append("age over 65")
     
-    # Generate personalized response
-    if len(risk_factors) > 3:
+    # Generate personalized response based on actual risk score
+    if hypertension_risk >= 70:
         confidence = "High"
-        answer = f"""**Your Hypertension Risk Assessment: HIGH RISK**
+        answer = f"""**Your Hypertension Risk Assessment: VERY HIGH RISK**
 
-Based on your health profile, you have multiple significant hypertension risk factors: {', '.join(risk_factors[:3])}.
+🚨 CRITICAL: Your actual hypertension risk is {hypertension_risk:.1f}% - This is VERY HIGH and requires immediate attention.
 
 **Your Specific Risk Factors:**
 • Blood Pressure: {blood_pressure} mmHg ({'High' if blood_pressure >= 140 else 'Elevated' if blood_pressure >= 130 else 'Normal'})
@@ -3933,17 +4018,35 @@ Based on your health profile, you have multiple significant hypertension risk fa
 • Cholesterol: {cholesterol} mg/dL ({'High' if cholesterol > 240 else 'Borderline' if cholesterol > 200 else 'Normal'})
 • Physical Activity: {activity}/10 ({'Low' if activity < 3 else 'Moderate' if activity < 6 else 'Good'})
 
-**Immediate Actions Needed:**
-• Consult with a cardiologist or hypertension specialist
+**IMMEDIATE ACTIONS REQUIRED:**
+• Consult with a cardiologist or hypertension specialist IMMEDIATELY
+• Consider blood pressure medication as recommended by your doctor
+• Monitor blood pressure multiple times daily
+• Implement strict DASH diet immediately
+• Reduce sodium intake to < 1,500mg/day"""
+    elif hypertension_risk >= 50:
+        confidence = "High"
+        answer = f"""**Your Hypertension Risk Assessment: HIGH RISK**
+
+⚠️ Your actual hypertension risk is {hypertension_risk:.1f}% - This is HIGH and needs urgent attention.
+
+**Your Specific Risk Factors:**
+• Blood Pressure: {blood_pressure} mmHg ({'High' if blood_pressure >= 140 else 'Elevated' if blood_pressure >= 130 else 'Normal'})
+• BMI: {bmi:.1f} ({'Obesity' if bmi > 30 else 'Overweight' if bmi > 25 else 'Normal weight'})
+• Cholesterol: {cholesterol} mg/dL ({'High' if cholesterol > 240 else 'Borderline' if cholesterol > 200 else 'Normal'})
+• Physical Activity: {activity}/10 ({'Low' if activity < 3 else 'Moderate' if activity < 6 else 'Good'})
+
+**URGENT ACTIONS NEEDED:**
+• Consult with a cardiologist or hypertension specialist within 1-2 weeks
 • Consider medication if lifestyle changes aren't sufficient
 • Monitor blood pressure daily
 • Focus on heart-healthy diet (DASH diet recommended)"""
         
-    elif len(risk_factors) > 1:
+    elif hypertension_risk >= 25:
         confidence = "Medium"
         answer = f"""**Your Hypertension Risk Assessment: MODERATE RISK**
 
-You have some hypertension risk factors that need attention: {', '.join(risk_factors[:2])}.
+Your actual hypertension risk is {hypertension_risk:.1f}% - This is MODERATE and needs attention.
 
 **Your Specific Profile:**
 • Blood Pressure: {blood_pressure} mmHg - {'Monitor closely' if blood_pressure >= 130 else 'Normal'}
@@ -3961,7 +4064,7 @@ You have some hypertension risk factors that need attention: {', '.join(risk_fac
         confidence = "High"
         answer = f"""**Your Hypertension Risk Assessment: LOW RISK**
 
-Excellent! Your current health profile shows low hypertension risk.
+✅ Good news! Your actual hypertension risk is {hypertension_risk:.1f}% - This is LOW.
 
 **Your Healthy Profile:**
 • Blood Pressure: {blood_pressure} mmHg - Normal
@@ -4380,6 +4483,413 @@ async def get_comprehensive_analysis(health_input: HealthInput):
     except Exception as e:
         logger.error(f"Error in comprehensive analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+def generate_sleep_answer(question: str, health_data: Dict, age: int, sleep_hours: float, stress_level: float, activity: float) -> HealthAnswer:
+    """Generate personalized sleep-related answers"""
+    
+    # Analyze sleep patterns
+    sleep_quality = "good" if 7 <= sleep_hours <= 9 else "needs improvement"
+    factors = []
+    
+    if sleep_hours < 6:
+        factors.append("insufficient sleep duration")
+    elif sleep_hours > 9:
+        factors.append("excessive sleep duration")
+    else:
+        factors.append("adequate sleep duration")
+    
+    if stress_level > 7:
+        factors.append("high stress affecting sleep quality")
+    elif stress_level < 4:
+        factors.append("low stress levels")
+    
+    if activity < 3:
+        factors.append("low physical activity affecting sleep")
+    elif activity > 7:
+        factors.append("high activity levels promoting better sleep")
+    
+    # Generate personalized response
+    if "sleep" in question.lower() or "insomnia" in question.lower():
+        answer = f"Based on your profile, you're getting {sleep_hours:.1f} hours of sleep per night. "
+        
+        if 7 <= sleep_hours <= 9:
+            answer += "This is within the recommended range for adults. "
+        elif sleep_hours < 7:
+            answer += "This is below the recommended 7-9 hours for adults. "
+        else:
+            answer += "This exceeds the typical adult sleep needs. "
+        
+        if stress_level > 6:
+            answer += f"Your high stress level ({stress_level}/10) may be affecting sleep quality. "
+            answer += "Consider stress management techniques like meditation, deep breathing, or gentle yoga before bed. "
+        
+        if activity < 3:
+            answer += "Increasing your physical activity during the day can improve sleep quality at night. "
+        
+        answer += "Maintain a consistent sleep schedule and create a relaxing bedtime routine."
+    
+    elif "tired" in question.lower() or "fatigue" in question.lower():
+        answer = f"Your sleep duration of {sleep_hours:.1f} hours may be contributing to fatigue. "
+        
+        if sleep_hours < 7:
+            answer += "Try to get 7-9 hours of quality sleep each night. "
+        elif stress_level > 6:
+            answer += "High stress levels can cause fatigue even with adequate sleep. "
+        
+        answer += "Ensure your bedroom is cool, dark, and quiet for optimal sleep quality."
+    
+    else:
+        answer = f"Your current sleep pattern shows {sleep_quality} sleep habits. "
+        if sleep_hours < 7:
+            answer += "Aim for 7-9 hours of sleep for optimal health and energy levels."
+        else:
+            answer += "Continue maintaining good sleep hygiene for overall health."
+    
+    return HealthAnswer(
+        answer=answer,
+        confidence="High",
+        related_factors=factors,
+        follow_up_suggestions=[
+            "Ask about sleep hygiene tips",
+            "Learn stress management techniques",
+            "Get exercise recommendations for better sleep",
+            "Understand sleep disorders and when to seek help"
+        ],
+        disclaimer="Sleep advice is general guidance. Consult a healthcare provider for persistent sleep issues."
+    )
+
+def generate_mental_health_answer(question: str, health_data: Dict, age: int, stress_level: float, sleep_hours: float, activity: float) -> HealthAnswer:
+    """Generate personalized mental health answers"""
+    
+    # Analyze mental health factors
+    factors = []
+    mental_health_score = 0
+    
+    if stress_level < 4:
+        factors.append("low stress levels")
+        mental_health_score += 20
+    elif stress_level > 7:
+        factors.append("high stress levels")
+        mental_health_score -= 15
+    
+    if sleep_hours >= 7:
+        factors.append("adequate sleep for mental health")
+        mental_health_score += 15
+    else:
+        factors.append("insufficient sleep affecting mental health")
+        mental_health_score -= 10
+    
+    if activity >= 5:
+        factors.append("good physical activity for mental wellbeing")
+        mental_health_score += 15
+    elif activity < 3:
+        factors.append("low activity affecting mental health")
+        mental_health_score -= 10
+    
+    # Generate personalized response
+    if "stress" in question.lower() or "anxiety" in question.lower():
+        answer = f"Your stress level is {stress_level}/10. "
+        
+        if stress_level > 7:
+            answer += "This is quite high and may be affecting your overall wellbeing. "
+            answer += "Consider stress management techniques like deep breathing, meditation, or talking to a counselor. "
+        elif stress_level < 4:
+            answer += "You're managing stress well! Continue your current stress management strategies. "
+        else:
+            answer += "This is a moderate stress level. Consider preventive stress management techniques. "
+        
+        if activity < 3:
+            answer += "Regular physical activity can significantly reduce stress levels. "
+        if sleep_hours < 7:
+            answer += "Adequate sleep is crucial for stress management. "
+    
+    elif "depression" in question.lower() or "mood" in question.lower():
+        answer = f"Based on your lifestyle factors: "
+        
+        if activity >= 5:
+            answer += "Your good activity level supports positive mood. "
+        else:
+            answer += "Increasing physical activity can boost mood and mental health. "
+        
+        if sleep_hours >= 7:
+            answer += "Adequate sleep is essential for emotional wellbeing. "
+        else:
+            answer += "Poor sleep can negatively impact mood and mental health. "
+        
+        if stress_level > 6:
+            answer += "High stress can contribute to mood changes. Consider stress reduction techniques. "
+        
+        answer += "If you're experiencing persistent mood changes, consider speaking with a mental health professional."
+    
+    else:
+        answer = f"Your mental health factors show: "
+        if mental_health_score >= 30:
+            answer += "good mental health indicators. Continue your current lifestyle habits. "
+        else:
+            answer += "some areas for improvement. Focus on stress management, adequate sleep, and regular physical activity. "
+        
+        answer += "Mental health is as important as physical health - don't hesitate to seek professional support when needed."
+    
+    return HealthAnswer(
+        answer=answer,
+        confidence="High",
+        related_factors=factors,
+        follow_up_suggestions=[
+            "Learn stress management techniques",
+            "Get sleep improvement tips",
+            "Find mental health resources",
+            "Understand when to seek professional help"
+        ],
+        disclaimer="Mental health advice is general guidance. Seek professional help for persistent mental health concerns."
+    )
+
+def generate_lifestyle_answer(question: str, health_data: Dict, age: int, gender: str, bmi: float, activity: float, smoking: int, alcohol: int, sleep_hours: float) -> HealthAnswer:
+    """Generate personalized lifestyle answers"""
+    
+    # Analyze lifestyle factors
+    factors = []
+    lifestyle_score = 0
+    
+    if smoking == 0:
+        factors.append("non-smoker")
+        lifestyle_score += 20
+    else:
+        factors.append("smoking habit - major health risk")
+        lifestyle_score -= 20
+    
+    if alcohol == 0:
+        factors.append("no alcohol consumption")
+        lifestyle_score += 10
+    elif alcohol <= 2:
+        factors.append("moderate alcohol consumption")
+        lifestyle_score += 5
+    else:
+        factors.append("high alcohol consumption")
+        lifestyle_score -= 10
+    
+    if activity >= 5:
+        factors.append("active lifestyle")
+        lifestyle_score += 15
+    elif activity >= 3:
+        factors.append("moderately active")
+        lifestyle_score += 10
+    else:
+        factors.append("sedentary lifestyle")
+        lifestyle_score -= 15
+    
+    if 7 <= sleep_hours <= 9:
+        factors.append("good sleep habits")
+        lifestyle_score += 10
+    else:
+        factors.append("sleep pattern needs improvement")
+        lifestyle_score -= 5
+    
+    # Generate personalized response
+    if "lifestyle" in question.lower() or "habits" in question.lower():
+        answer = f"Your lifestyle profile shows: "
+        
+        if smoking == 0:
+            answer += "excellent choice to avoid smoking. "
+        else:
+            answer += "smoking is a major health risk that should be addressed. "
+        
+        if alcohol <= 2:
+            answer += "Your alcohol consumption appears moderate. "
+        else:
+            answer += "Consider reducing alcohol consumption for better health. "
+        
+        if activity >= 5:
+            answer += "Great job maintaining an active lifestyle! "
+        else:
+            answer += "Increasing physical activity will significantly benefit your health. "
+        
+        answer += "Focus on maintaining healthy habits: regular exercise, balanced nutrition, adequate sleep, and stress management."
+    
+    elif "prevention" in question.lower():
+        answer = f"Based on your {age}-year-old {gender.lower()} profile, key prevention strategies include: "
+        
+        if smoking > 0:
+            answer += "Quitting smoking is the most important step. "
+        if activity < 5:
+            answer += "Regular physical activity (150 minutes/week) is crucial. "
+        if bmi > 25:
+            answer += "Maintaining a healthy weight through diet and exercise. "
+        
+        answer += "Regular health screenings, stress management, and adequate sleep are also essential for prevention."
+    
+    else:
+        answer = f"Your lifestyle factors indicate "
+        if lifestyle_score >= 40:
+            answer += "good overall lifestyle choices. Continue your healthy habits! "
+        else:
+            answer += "several areas for improvement. Focus on the most impactful changes first. "
+        
+        answer += "Small, consistent changes in daily habits can lead to significant long-term health benefits."
+    
+    return HealthAnswer(
+        answer=answer,
+        confidence="High",
+        related_factors=factors,
+        follow_up_suggestions=[
+            "Get personalized exercise recommendations",
+            "Learn about healthy nutrition habits",
+            "Understand smoking cessation resources",
+            "Find stress management techniques"
+        ],
+        disclaimer="Lifestyle advice is general guidance. Consult healthcare providers for personalized recommendations."
+    )
+
+def generate_medication_answer(question: str, health_data: Dict, age: int, gender: str, bmi: float, blood_pressure: float, glucose: float, cholesterol: float) -> HealthAnswer:
+    """Generate personalized medication-related answers"""
+    
+    # Analyze medication needs
+    factors = []
+    medication_considerations = []
+    
+    if blood_pressure >= 140:
+        medication_considerations.append("blood pressure medication may be needed")
+    if glucose >= 126:
+        medication_considerations.append("diabetes medication may be required")
+    if cholesterol >= 240:
+        medication_considerations.append("cholesterol medication may be beneficial")
+    
+    if age >= 65:
+        factors.append("age-related medication considerations")
+    if bmi > 30:
+        factors.append("weight-related medication adjustments may be needed")
+    
+    # Generate personalized response
+    if "medication" in question.lower() or "drug" in question.lower():
+        answer = f"Based on your health profile: "
+        
+        if medication_considerations:
+            answer += f"Your health indicators suggest {', '.join(medication_considerations[:2])}. "
+            answer += "However, medication decisions should always be made with your healthcare provider. "
+        else:
+            answer += "Your current health indicators don't suggest immediate medication needs. "
+            answer += "Focus on lifestyle modifications first. "
+        
+        answer += "Never start, stop, or change medications without consulting your doctor."
+    
+    elif "supplement" in question.lower() or "vitamin" in question.lower():
+        answer = f"Based on your {age}-year-old profile: "
+        
+        if age >= 50:
+            answer += "You may benefit from vitamin D and B12 supplements. "
+        if health_data.get('physical_activity', 5) < 3:
+            answer += "Consider omega-3 supplements for heart health. "
+        if health_data.get('sleep_hours', 7) < 7:
+            answer += "Magnesium supplements may help with sleep. "
+        
+        answer += "Always consult your healthcare provider before starting any supplements, especially if you take medications."
+    
+    else:
+        answer = f"Your health profile suggests "
+        if medication_considerations:
+            answer += "potential medication needs that should be discussed with your healthcare provider. "
+        else:
+            answer += "good health indicators that may not require medications at this time. "
+        
+        answer += "Regular monitoring and lifestyle modifications are key to maintaining health."
+    
+    return HealthAnswer(
+        answer=answer,
+        confidence="Medium",
+        related_factors=factors,
+        follow_up_suggestions=[
+            "Discuss medication options with your doctor",
+            "Learn about medication interactions",
+            "Understand supplement safety",
+            "Get regular health monitoring"
+        ],
+        disclaimer="This is not medical advice. Always consult healthcare providers for medication decisions."
+    )
+
+def generate_symptoms_answer(question: str, health_data: Dict, age: int, gender: str, bmi: float, blood_pressure: float, glucose: float, cholesterol: float) -> HealthAnswer:
+    """Generate personalized symptoms-related answers"""
+    
+    # Analyze potential symptoms based on health data
+    factors = []
+    warning_signs = []
+    
+    if blood_pressure >= 140:
+        warning_signs.append("high blood pressure symptoms like headaches, dizziness")
+    if glucose >= 126:
+        warning_signs.append("diabetes symptoms like increased thirst, frequent urination")
+    if bmi > 30:
+        warning_signs.append("obesity-related symptoms like joint pain, fatigue")
+    
+    if age >= 50:
+        factors.append("age-related symptom monitoring")
+    if gender == "Male":
+        factors.append("male-specific health symptoms to watch")
+    else:
+        factors.append("female-specific health symptoms to monitor")
+    
+    # Generate personalized response
+    if "symptom" in question.lower() or "sign" in question.lower():
+        answer = f"Based on your health profile, be aware of: "
+        
+        if warning_signs:
+            answer += f"{', '.join(warning_signs[:2])}. "
+        else:
+            answer += "general health symptoms like persistent fatigue, unexplained weight changes, or unusual pain. "
+        
+        answer += "If you experience any concerning symptoms, consult your healthcare provider promptly."
+    
+    elif "warning" in question.lower() or "alert" in question.lower():
+        answer = f"Your health indicators suggest monitoring for: "
+        
+        if blood_pressure >= 130:
+            answer += "cardiovascular symptoms like chest pain, shortness of breath. "
+        if glucose >= 100:
+            answer += "diabetes symptoms like excessive thirst, frequent urination, blurred vision. "
+        if bmi > 25:
+            answer += "weight-related symptoms like joint pain, sleep apnea. "
+        
+        answer += "Seek immediate medical attention for severe symptoms like chest pain, difficulty breathing, or severe headache."
+    
+    else:
+        answer = f"Your {age}-year-old {gender.lower()} profile suggests monitoring for age and gender-appropriate symptoms. "
+        answer += "Regular health checkups and awareness of your body's changes are important for early detection of health issues."
+    
+    return HealthAnswer(
+        answer=answer,
+        confidence="Medium",
+        related_factors=factors,
+        follow_up_suggestions=[
+            "Learn about emergency symptoms",
+            "Understand when to seek immediate care",
+            "Get regular health screenings",
+            "Track symptoms and patterns"
+        ],
+        disclaimer="This is not medical advice. Seek immediate medical attention for severe or concerning symptoms."
+    )
+
+# Test endpoint for debugging risk conversion
+@app.get("/debug/risk-conversion")
+async def debug_risk_conversion():
+    """Debug endpoint to test risk score conversion"""
+    test_data = {
+        "diabetes_risk": 0.852,
+        "hypertension_risk": 0.887
+    }
+    
+    # Test conversion logic
+    diabetes_raw = test_data.get('diabetes_risk', 0)
+    diabetes_converted = diabetes_raw * 100 if diabetes_raw <= 1.0 else diabetes_raw
+    
+    hypertension_raw = test_data.get('hypertension_risk', 0)
+    hypertension_converted = hypertension_raw * 100 if hypertension_raw <= 1.0 else hypertension_raw
+    
+    return {
+        "diabetes_raw": diabetes_raw,
+        "diabetes_converted": diabetes_converted,
+        "hypertension_raw": hypertension_raw,
+        "hypertension_converted": hypertension_converted,
+        "diabetes_risk_level": "VERY HIGH" if diabetes_converted >= 70 else "HIGH" if diabetes_converted >= 50 else "MODERATE" if diabetes_converted >= 25 else "LOW",
+        "hypertension_risk_level": "VERY HIGH" if hypertension_converted >= 70 else "HIGH" if hypertension_converted >= 50 else "MODERATE" if hypertension_converted >= 25 else "LOW"
+    }
 
 if __name__ == "__main__":
     import uvicorn
