@@ -1,0 +1,238 @@
+/* Settings-based CSS Variables and Classes */
+
+/* Font Size Settings */
+:root {
+  --font-size-small: 14px;
+  --font-size-medium: 16px;
+  --font-size-large: 18px;
+}
+
+/* Compact Mode Styles */
+.compact-mode {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.25rem;
+  --spacing-2xl: 1.5rem;
+}
+
+.compact-mode .p-6 {
+  padding: 0.75rem !important;
+}
+
+.compact-mode .p-4 {
+  padding: 0.5rem !important;
+}
+
+.compact-mode .p-3 {
+  padding: 0.375rem !important;
+}
+
+.compact-mode .gap-4 {
+  gap: 0.5rem !important;
+}
+
+.compact-mode .gap-3 {
+  gap: 0.375rem !important;
+}
+
+.compact-mode .gap-2 {
+  gap: 0.25rem !important;
+}
+
+.compact-mode .text-lg {
+  font-size: 1rem !important;
+}
+
+.compact-mode .text-xl {
+  font-size: 1.125rem !important;
+}
+
+.compact-mode .text-2xl {
+  font-size: 1.25rem !important;
+}
+
+.compact-mode .text-3xl {
+  font-size: 1.5rem !important;
+}
+
+/* Animation Control */
+.no-animations * {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+/* Theme Override Classes */
+.light-theme {
+  color-scheme: light;
+}
+
+.dark-theme {
+  color-scheme: dark;
+}
+
+/* Risk Threshold Visual Indicators */
+.risk-low {
+  color: #10b981;
+  background-color: #d1fae5;
+}
+
+.risk-medium {
+  color: #f59e0b;
+  background-color: #fef3c7;
+}
+
+.risk-high {
+  color: #ef4444;
+  background-color: #fee2e2;
+}
+
+/* Enhanced dark theme risk indicators */
+.dark .risk-low {
+  color: #4ade80;
+  background-color: #064e3b;
+}
+
+.dark .risk-medium {
+  color: #fbbf24;
+  background-color: #451a03;
+}
+
+.dark .risk-high {
+  color: #f87171;
+  background-color: #450a0a;
+}
+
+/* Notification Styles */
+.notification-enabled {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.notification-disabled {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+/* Analytics Tracking Styles */
+.analytics-enabled {
+  --tracking-color: #3b82f6;
+}
+
+.analytics-disabled {
+  --tracking-color: #6b7280;
+}
+
+/* Data Sharing Indicators */
+.data-sharing-enabled {
+  border-left: 4px solid #10b981;
+}
+
+.data-sharing-disabled {
+  border-left: 4px solid #6b7280;
+}
+
+/* Health Settings Visual Feedback */
+.health-tracking-enabled {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.health-tracking-disabled {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+/* Enhanced dark theme health settings */
+.dark .health-tracking-enabled {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+  color: #e0e7ff;
+}
+
+.dark .health-tracking-disabled {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+/* Account Security Indicators */
+.security-high {
+  border: 2px solid #10b981;
+  background: #f0fdf4;
+}
+
+.security-medium {
+  border: 2px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.security-low {
+  border: 2px solid #ef4444;
+  background: #fef2f2;
+}
+
+/* Enhanced dark theme security indicators */
+.dark .security-high {
+  border: 2px solid #4ade80;
+  background: #064e3b;
+  color: #d1fae5;
+}
+
+.dark .security-medium {
+  border: 2px solid #fbbf24;
+  background: #451a03;
+  color: #fef3c7;
+}
+
+.dark .security-low {
+  border: 2px solid #f87171;
+  background: #450a0a;
+  color: #fee2e2;
+}
+
+/* Responsive Settings */
+@media (max-width: 768px) {
+  .compact-mode .grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .compact-mode .md\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .compact-mode .md\\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Accessibility Enhancements */
+.settings-high-contrast {
+  --text-color: #000000;
+  --bg-color: #ffffff;
+  --border-color: #000000;
+  --accent-color: #0000ff;
+}
+
+.settings-reduced-motion {
+  --animation-duration: 0s;
+  --transition-duration: 0s;
+}
+
+/* Enhanced dark theme accessibility */
+.dark .settings-high-contrast {
+  --text-color: #f8fafc;
+  --bg-color: #0f172a;
+  --border-color: #f8fafc;
+  --accent-color: #60a5fa;
+}
+
+/* Print Styles for Settings */
+@media print {
+  .settings-print-friendly {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}
+
